@@ -20,4 +20,4 @@ INCLUDE_DIRECTORIES("C:/my/library/boost_1_79_0/")
 #    target_link_libraries (Boost_test ${Boost_LIBRARIES})
 #endif ()
 
-add_executable(Lesson_Multithreading main.cpp)
+add_executable(Lesson_Multithreading main.cpp IOFile.cpp IOFile.h util.cpp util.h)
