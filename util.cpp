@@ -7,9 +7,6 @@ std::string tolower(const std::string &str) {
     return lower_str;
 };
 
-//void count_words(std::shared_ptr<std::vector<std::string>> vec, std::shared_ptr<std::map<std::string, std::size_t>> &counter) {
-//    std::for_each(vec->cbegin(), vec->cend(), [counter](const std::string &s) { ++(*counter)[tolower(s)]; });
-//}
 void count_words(std::stringstream& stream, std::map<std::string, std::size_t>& counter) {
     std::for_each(std::istream_iterator<std::string>(stream),
                   std::istream_iterator<std::string>(),
@@ -47,4 +44,8 @@ std::chrono::milliseconds time_measurement(void (*method)(int argc, char *argv[]
     method(argc, argv);
     auto end = std::chrono::high_resolution_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+}
+
+void reading_file(std::istream &stream, std::string &text) {
+    text = std::string((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
 }

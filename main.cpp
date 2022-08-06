@@ -38,9 +38,6 @@ void calculations(int argc, char *argv[]){
     std::vector<Counter> counters(count_threads);
     std::vector<std::stringstream> vec_strstream(count_threads);
     std::vector<std::thread*> vec_thread(count_threads);
-
-
-    std::vector<std::string> list_text_for_threads(count_threads);
     size_t text_len = text_file.length();
     size_t count_symbols_thread = text_len / count_threads;
     size_t counter_text = 0;

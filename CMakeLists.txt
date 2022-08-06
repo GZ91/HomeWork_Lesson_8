@@ -4,7 +4,7 @@ project(Lesson_Multithreading)
 set (CMAKE_CXX_STANDARD 20)
 
 
-add_executable(Lesson_Multithreading main.cpp IOFile.cpp IOFile.h util.cpp util.h)
+add_executable(Lesson_Multithreading main.cpp util.cpp util.h)
 
 project(Lesson_Multithreading_2)
 add_executable(Lesson_Multithreading_2 topic_word.cpp)
