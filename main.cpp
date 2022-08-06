@@ -9,22 +9,21 @@
 #include <map>
 #include <vector>
 #include <thread>
-#include <boost/algorithm/string.hpp>
+//#include <boost/algorithm/string.hpp>
 #include <atomic>
 #include <array>
-
+#include <iomanip>
 #include "IOFile.h"
 #include "util.h"
 
 
-const size_t TOPK = 15;
+const size_t TOPK = 10;
 
 using Counter = std::map<std::string, std::size_t>;
-using Vector_string = std::vector<std::string>;
 
 
 void calculations(int argc, char *argv[]){
-    const int count_threads = std::thread::hardware_concurrency();                      // количество потоков у системы
+    const unsigned int count_threads = 4;// std::thread::hardware_concurrency();
 
     std::string text_file;
     for (int i = 1; i < argc; ++i) {
@@ -36,50 +35,53 @@ void calculations(int argc, char *argv[]){
         reading_file(input, text_file);
     }
 
-    int text_len = text_file.length();
-
-    int count_symbols_thread = text_len / count_threads;
-
-    std::vector<std::stringstream *> vec_strstream(count_threads);
-
-    for (int i = 0; i < count_threads; ++i) // ОШИБКА делит слова на части, нам нужны целые слова.
-    {
-        vec_strstream[i] = new std::stringstream();
-        (*vec_strstream[i]) << text_file.substr(count_symbols_thread * i, count_symbols_thread);
-    }
+    std::vector<Counter> counters(count_threads);
+    std::vector<std::stringstream> vec_strstream(count_threads);
+    std::vector<std::thread*> vec_thread(count_threads);
 
 
-    std::vector<std::thread *> vector_threads(count_threads);
-    std::vector<std::shared_ptr<Counter>> vector_Counter(count_threads);
-    for (int i = 0; i < count_threads; ++i) {
-        std::shared_ptr<Vector_string> shared_list_str;
-        if (i == count_threads - 1) {
-            std::string text_for_thread = text_file.substr(count_symbols_thread * i, text_len);
-//            boost::split(shared_list_str, text_for_thread, boost::is_space());
-            std::shared_ptr<Counter> freq_dict_local;
-            vector_Counter.push_back(freq_dict_local);
-            std::thread thread_i(count_words, shared_list_str, std::ref(freq_dict_local));
-            thread_i.detach();
-            vector_threads.push_back(&thread_i);
-            break;
+    std::vector<std::string> list_text_for_threads(count_threads);
+    size_t text_len = text_file.length();
+    size_t count_symbols_thread = text_len / count_threads;
+    size_t counter_text = 0;
+    size_t old_counter = 0;
+    bool spliting = false;
+
+    for(int thr = 0; thr < count_threads; ++thr) {
+        for (size_t i = std::min(counter_text + count_symbols_thread - 1,text_len - 1); i < text_len; ++i) {
+            if (!spliting){
+                i = std::min(counter_text + count_symbols_thread - 1,text_len - 1);
+            }
+            if ((i - old_counter) >= count_symbols_thread || i == text_len - 1){
+                spliting = true;
+            }
+            char val = text_file[i];
+            counter_text++;
+            if (spliting && (text_len - 1  == i || val == ' ' || val == '\t' || val == '\n') ) {
+                vec_strstream[thr] << text_file.substr(old_counter, i - old_counter);
+                old_counter = i;
+                spliting = false;
+                break;
+            }
         }
-
-        std::string text_for_thread = text_file.substr(count_symbols_thread * i, count_symbols_thread * (i + 1));
-//        boost::split(shared_list_str, text_for_thread, boost::is_space());
-        std::shared_ptr<Counter> freq_dict_local;
-        vector_Counter.push_back(freq_dict_local);
-        std::thread thread_i(count_words, shared_list_str, std::ref(freq_dict_local));
-        thread_i.detach();
-        vector_threads.push_back(&thread_i);
+        auto thread_i = new std::thread(count_words, std::ref(vec_strstream[thr]), std::ref(counters[thr]));
+        vec_thread[thr] = thread_i;
     }
-    Counter freq_dict;
 
-    for (auto thread: vector_threads)thread->join();
-    for (auto v_map: vector_Counter) {
-        std::merge(freq_dict.begin(), freq_dict.end(), v_map->begin(), v_map->end(),
-                   std::inserter(freq_dict, freq_dict.begin()));
+    Counter v_map;
+    for(int thr = 0; thr < count_threads; ++thr) {
+        vec_thread[thr]->join();
+        auto thr_map = counters[thr];
+        for (auto it = thr_map.begin(); it != thr_map.end(); ++it){
+            v_map[it->first]+=it->second;
+        }
     }
-    print_topk(std::cout, freq_dict, TOPK);
+
+
+    for(int thr = 0; thr < count_threads; ++thr) {
+        delete vec_thread[thr];
+    }
+    print_topk(std::cout, v_map, TOPK);
 }
 
 int main(int argc, char *argv[]) {
